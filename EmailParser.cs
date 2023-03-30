@@ -56,7 +56,8 @@ namespace EmailParser
                             // generate a unique filename for the attachment
                             string fileName = Guid.NewGuid().ToString() + "-" + (attachment.ContentDisposition?.FileName ?? attachment.ContentType.Name);
                             string path = $"{Directory.GetCurrentDirectory()}/{fileName}";
-                            // save the attachment to a file
+
+
                             using (var stream = File.Create(path))
                             {
                                 if (attachment is MessagePart)
