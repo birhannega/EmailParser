@@ -53,26 +53,34 @@ namespace EmailParser
                         // process the attachments
                         foreach (var attachment in mimeMessage.Attachments)
                         {
-                            // generate a unique filename for the attachment
-                            string fileName = Guid.NewGuid().ToString() + "-" + (attachment.ContentDisposition?.FileName ?? attachment.ContentType.Name);
-                            string path = $"{Directory.GetCurrentDirectory()}/{fileName}";
-
-
-                            using (var stream = File.Create(path))
+                            // check if the attachment is a JSON file
+                            try
                             {
-                                if (attachment is MessagePart)
-                                {
-                                    var rfc822 = (MessagePart)attachment;
-                                    rfc822.Message.WriteTo(stream);
-                                }
-                                else
+                                // read the attachment into a string
+                                string json = string.Empty;
+                                using (var stream = new MemoryStream())
                                 {
                                     var part = (MimePart)attachment;
                                     part.Content.DecodeTo(stream);
+                                    stream.Seek(0, SeekOrigin.Begin);
+                                    using (var reader = new StreamReader(stream))
+                                    {
+                                        json = reader.ReadToEnd();
+                                    }
                                 }
+
+                                // deserialize the JSON into an object
+                                VesselReportDto emailData = JsonConvert.DeserializeObject<VesselReportDto>(json);
+
+                                // process the email data as needed
+                                Console.WriteLine("version: {0}", emailData.version);
+                                Console.WriteLine("report_recipient: {0}", emailData.report_recipient);
                             }
 
-                            Console.WriteLine("Attachment saved to {0}", path);
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error: {ex.Message}");
+                            }
                         }
                     }
                 }
