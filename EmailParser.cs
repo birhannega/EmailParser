@@ -4,11 +4,7 @@ using MailKit;
 using MimeKit;
 using Newtonsoft.Json;
 using System.Globalization;
-using System;
-using System.Net.Mail;
-using EAGetMail;
-using MailKit.Security;
-using Org.BouncyCastle.Utilities;
+using MimeKit.Text;
 
 namespace EmailParser
 {
@@ -42,8 +38,16 @@ namespace EmailParser
                 // retrieve and process each message
                 foreach (var message in messages)
                 {
-                    // download the full message
                     MimeMessage mimeMessage = client.Inbox.GetMessage(message.UniqueId);
+                    string Sender = mimeMessage.From.Mailboxes.Single().Address;
+                    string Subject = mimeMessage.Subject;
+
+                    var replyDto = new EmailReplyDto
+                    {
+                        Sender = mimeMessage.From.Mailboxes.Single().Address,
+                        Subject = mimeMessage.Subject,
+                    };
+
 
                     // check if the message has attachments
                     if (mimeMessage.Attachments.Count() > 0)
@@ -53,7 +57,6 @@ namespace EmailParser
                         // process the attachments
                         foreach (var attachment in mimeMessage.Attachments)
                         {
-                            // check if the attachment is a JSON file
                             try
                             {
                                 // read the attachment into a string
@@ -73,8 +76,8 @@ namespace EmailParser
                                 VesselReportDto emailData = JsonConvert.DeserializeObject<VesselReportDto>(json);
 
                                 // process the email data as needed
-                                Console.WriteLine("version: {0}", emailData.version);
-                                Console.WriteLine("report_recipient: {0}", emailData.report_recipient);
+                                SaveToDB(emailData);
+                                SendReply(replyDto, "Reply Message");
                             }
 
                             catch (Exception ex)
@@ -88,6 +91,19 @@ namespace EmailParser
                 // disconnect from the server
                 client.Disconnect(true);
             }
+        }
+
+
+        public static void SaveToDB(VesselReportDto report)
+        {
+            Console.WriteLine("Save to Db");
+            Console.WriteLine("report_recipient: {0}", report.report_recipient);
+        }
+        public static void SendReply(EmailReplyDto replyDto, string message)
+        {
+            Console.WriteLine("Send Reply");
+            Console.WriteLine("Replying to: {0}", replyDto.Sender);
+            Console.WriteLine("Message: {0}", message);
         }
     }
 }
