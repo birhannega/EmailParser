@@ -6,7 +6,7 @@
         {
             try
             {
-            EmailParser.ParseEmail();
+                EmailParser.ParseEmail();
             }
             catch(Exception ex)
             {
