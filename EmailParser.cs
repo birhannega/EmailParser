@@ -23,18 +23,21 @@ namespace EmailParser
                 // https://support.google.com/accounts/answer/185833?hl=en
                 // Gmail IMAP4 server is "imap.gmail.com"
                 //TODO Create a config to store credentials
-                MailServer oServer = new MailServer("imap.gmail.com","hirebirhan@gmail.com","tjuvdjclwozgrjiz",ServerProtocol.Imap4);
+                MailServer oServer = new("imap.gmail.com", "hirebirhan@gmail.com", "tjuvdjclwozgrjiz", ServerProtocol.Imap4)
+                {
+                    SSLConnection = true,
+                    Port = 993
+                };
+                MailClient oClient = new("TryIt");
+                GetMailInfosParamType filter = new()
+                {
+                    GetMailInfosOptions = GetMailInfosOptionType.All,
+                    
+                };
+                filter.DateRange.SINCE = DateTime.Now.AddMinutes(-5);
 
-                // Enable SSL connection.
-                oServer.SSLConnection = true;
-
-                // Set 993 SSL port
-                oServer.Port = 993;
-
-                MailClient oClient = new MailClient("TryIt");
                 oClient.Connect(oServer);
-
-                MailInfo[] infos = oClient.GetMailInfos();
+                MailInfo[] infos = oClient.GetMailInfos(filter);
                 Console.WriteLine("Total {0} email(s)\r\n", infos.Length);
                 for (int i = 0; i < infos.Length; i++)
                 {
@@ -44,17 +47,10 @@ namespace EmailParser
 
                     // Receive email from IMAP4 server
                     Mail oMail = oClient.GetMail(info);
-                    Attachment[] attachments = oMail.Attachments;
-                    for (int j = 0;j < attachments.Length; j++)
-                    {
-                        var attachmentFile = attachments[j];
-                        var path = Path.Combine(Environment.CurrentDirectory , "attachments" , attachmentFile.Name);
-                        Console.WriteLine(path);
-                       // var data = JsonConvert.DeserializeObject<IList<VesselReportDto>>(File.ReadAllText(attachmentFile.Name));
-                       // Console.WriteLine(data);
-                        Console.WriteLine(attachments[j]);
-                    }
-
+                    Attachment attachmentFile = oMail.Attachments.FirstOrDefault();
+                    attachmentFile.SaveAs($"{Directory.GetCurrentDirectory()}/{attachmentFile.Name}", true);
+                    var data = File.ReadAllText(attachmentFile.Name);
+                    var ParsedData = JsonConvert.DeserializeObject<VesselReportDto>(data);
                     Console.WriteLine("From: {0}", oMail.From.ToString());
                     Console.WriteLine("Subject: {0}\r\n", oMail.Subject);
 
@@ -65,11 +61,11 @@ namespace EmailParser
                     // Save email to local disk
                     oMail.SaveAs(fullPath, true);
                     // Mark email as deleted from IMAP4 server.
-                   // oClient.Delete(info);
+                    // oClient.Delete(info);
                 }
 
                 // Quit and expunge emails marked as deleted from IMAP4 server.
-                 oClient.Quit();
+                oClient.Quit();
                 // oClient.Close();
             }
             catch (Exception ep)
@@ -81,7 +77,7 @@ namespace EmailParser
         static string _generateFileName(int sequence)
         {
             DateTime currentDateTime = DateTime.Now;
-            return string.Format("{0}-{1:000}-{2:000}.eml",currentDateTime.ToString("yyyyMMddHHmmss", new CultureInfo("en-US")),currentDateTime.Millisecond,sequence);
+            return string.Format("{0}-{1:000}-{2:000}.eml", currentDateTime.ToString("yyyyMMddHHmmss", new CultureInfo("en-US")), currentDateTime.Millisecond, sequence);
         }
     }
 }
